@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTA VI - Vice City Ultimate Interactive Countdown</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #080312;
+            font-family: 'Orbitron', sans-serif;
+            color: #fff;
+        }
+
+        /* 滿版背景 (支援動態切換主題) */
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.8s ease;
+            overflow: hidden;
+        }
+
+        /* 主題 1: Vice City Neon (預設) */
+        .theme-neon {
+            background: radial-gradient(circle at 50% 30%, #3d0959 0%, #150528 60%, #06020c 100%);
+        }
+
+        /* 主題 2: Beach Sunset */
+        .theme-sunset {
+            background: linear-gradient(180deg, #2b0840 0%, #851e52 40%, #e65c40 70%, #f9a03f 90%, #080312 100%);
+        }
+
+        /* 主題 3: Cyber Grid */
+        .theme-cyber {
+            background: radial-gradient(circle at 50% 40%, #00334e 0%, #051622 70%, #01080e 100%);
+        }
+
+        /* CRT 掃描線質感 */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        /* 畫布特效 (粒子、爆破、跑車) */
+        #fx-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* 向量棕櫚樹 (風吹搖曳) */
+        .palm-svg {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .palm-tree-left {
+            transform-origin: bottom left;
+            animation: palmSwayLeft 3.5s ease-in-out infinite alternate;
+        }
+
+        .palm-tree-right {
+            transform-origin: bottom right;
+            animation: palmSwayRight 4.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes palmSwayLeft {
+            0% { transform: rotate(0deg) scale(1); }
+            100% { transform: rotate(4deg) scale(1.02); }
+        }
+
+        @keyframes palmSwayRight {
+            0% { transform: rotate(0deg) scale(1); }
+            100% { transform: rotate(-4deg) scale(1.02); }
+        }
+
+        /* 超高速透視賽博網格 */
+        .grid-bg {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 42vh;
+            background-image: 
+                linear-gradient(to right, rgba(0, 255, 255, 0.35) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 0, 128, 0.4) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: perspective(350px) rotateX(68deg);
+            animation: gridFastMove 2s linear infinite;
+            z-index: 4;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        @keyframes gridFastMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100px; }
+        }
+
+        /* 主標題與發售資訊 */
+        .content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            letter-spacing: 10px;
+            color: #ffffff;
+            text-shadow: 0 0 15px #ff007f, 0 0 30px #ff007f, 0 0 60px #ff007f;
+            margin-bottom: 5px;
+            animation: titleNeonPulse 2s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+
+        @keyframes titleNeonPulse {
+            0% { text-shadow: 0 0 15px #ff007f, 0 0 30px #ff007f; }
+            100% { text-shadow: 0 0 25px #00ffff, 0 0 50px #ff007f, 0 0 80px #00ffff; }
+        }
+
+        .target-date {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: #00ffff;
+            text-shadow: 0 0 12px #00ffff;
+            margin-bottom: 35px;
+            text-transform: uppercase;
+            background: rgba(13, 4, 20, 0.8);
+            padding: 8px 24px;
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            pointer-events: none;
+        }
+
+        /* 倒數計時卡片容器 */
+        .countdown-grid {
+            display: flex;
+            gap: 22px;
+        }
+
+        /* 倒數卡片與動態懸停特效 */
+        .time-box {
+            background: rgba(18, 5, 43, 0.85);
+            border: 2px solid #ff007f;
+            border-radius: 18px;
+            padding: 22px 32px;
+            min-width: 140px;
+            box-shadow: 0 0 30px rgba(255, 0, 127, 0.6), inset 0 0 15px rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .time-box:hover {
+            transform: translateY(-12px) scale(1.12);
+            border-color: #00ffff;
+            background: rgba(10, 2, 28, 0.95);
+            box-shadow: 0 0 50px #00ffff, 0 0 25px #ff007f, inset 0 0 25px #00ffff;
+        }
+
+        .time-value {
+            font-size: 4.5rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 15px #00ffff, 0 0 30px #00ffff;
+            transition: all 0.3s ease;
+        }
+
+        .time-box:hover .time-value {
+            color: #00ffff;
+            text-shadow: 0 0 20px #00ffff, 0 0 40px #ffffff;
+        }
+
+        .time-label {
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #ffca00;
+            margin-top: 6px;
+            text-transform: uppercase;
+        }
+
+        /* 超豐富控制按鈕區 */
+        .controls {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            z-index: 99999;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 12px;
+            max-width: 80vw;
+        }
+
+        .btn {
+            background: rgba(18, 5, 43, 0.9);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            padding: 10px 18px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 900;
+            border-radius: 10px;
+            cursor: pointer !important;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+            transition: all 0.2s ease-in-out;
+            outline: none;
+            backdrop-filter: blur(5px);
+        }
+
+        .btn:hover {
+            background: #00ffff;
+            color: #080312;
+            box-shadow: 0 0 30px #00ffff, 0 0 15px #ff007f;
+            transform: scale(1.08);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .fs-tip {
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 1px;
+            z-index: 10;
+            background: rgba(0,0,0,0.6);
+            padding: 6px 18px;
+            border-radius: 12px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 豐富互動控制按鈕區 -->
+    <div class="controls">
+        <button class="btn" id="theme-btn">🎨 主題: 罪惡霓虹</button>
+        <button class="btn" id="music-btn">🎵 音樂: 旋律檔</button>
+        <button class="btn" id="car-btn">🚗 跑車巡航: 開</button>
+        <button class="btn" id="burst-btn">💥 霓虹爆破</button>
+        <button class="btn" id="fs-btn">⛶ 全螢幕</button>
+    </div>
+
+    <div class="container theme-neon" id="main-container">
+        <!-- CRT 掃描線層 -->
+        <div class="scanlines"></div>
+
+        <!-- 畫布特效 (海鳥、粒子、爆破、跑車) -->
+        <canvas id="fx-canvas"></canvas>
+
+        <!-- 向量棕櫚樹 -->
+        <svg class="palm-svg" id="palm-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice">
+            <g class="palm-tree-left">
+                <path d="M -20,600 Q 80,380 160,180 Q 110,160 30,200 Q 110,140 180,170 Q 160,90 90,70 Q 180,100 200,160 Q 230,90 270,100 Q 220,150 200,180 Q 260,180 290,220 Q 210,200 180,210 Q 100,390 10,600 Z" fill="#07020d" />
+            </g>
+            <g class="palm-tree-right">
+                <path d="M 1020,600 Q 920,380 840,180 Q 890,160 970,200 Q 890,140 820,170 Q 840,90 910,70 Q 820,100 800,160 Q 770,90 730,100 Q 780,150 800,180 Q 740,180 710,220 Q 790,200 820,210 Q 900,390 990,600 Z" fill="#07020d" />
+            </g>
+        </svg>
+
+        <!-- 賽博網格 -->
+        <div class="grid-bg"></div>
+
+        <!-- 主內容 -->
+        <div class="content">
+            <h1>GRAND THEFT AUTO VI</h1>
+            <div class="target-date">TARGET: NOV 19, 2026 - 00:00 AM</div>
+
+            <div class="countdown-grid">
+                <div class="time-box" onclick="triggerBurstAtCenter()">
+                    <div class="time-value" id="days">000</div>
+                    <div class="time-label">DAYS</div>
+                </div>
+                <div class="time-box" onclick="triggerBurstAtCenter()">
+                    <div class="time-value" id="hours">00</div>
+                    <div class="time-label">HOURS</div>
+                </div>
+                <div class="time-box" onclick="triggerBurstAtCenter()">
+                    <div class="time-value" id="minutes">00</div>
+                    <div class="time-label">MINS</div>
+                </div>
+                <div class="time-box" onclick="triggerBurstAtCenter()">
+                    <div class="time-value" id="seconds">00</div>
+                    <div class="time-label">SECS</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fs-tip">提示：移至數字卡片可放大，點擊畫面可觸發霓虹爆破特效！按 **F11** 進入全螢幕</div>
+    </div>
+
+    <script>
+        // 1. 倒數計時邏輯 (目標：2026/11/19 00:00:00)
+        const targetDate = new Date("2026-11-19T00:00:00").getTime();
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const difference = targetDate - now;
+
+            if (difference > 0) {
+                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+                document.getElementById("days").innerText = String(days).padStart(3, '0');
+                document.getElementById("hours").innerText = String(hours).padStart(2, '0');
+                document.getElementById("minutes").innerText = String(minutes).padStart(2, '0');
+                document.getElementById("seconds").innerText = String(seconds).padStart(2, '0');
+            } else {
+                document.getElementById("days").innerText = "000";
+                document.getElementById("hours").innerText = "00";
+                document.getElementById("minutes").innerText = "00";
+                document.getElementById("seconds").innerText = "00";
+            }
+        }
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+
+        // 2. Canvas 高級繪圖：飛鳥 + 霓虹粒子 + 爆破特效 + 跑車動畫
+        const canvas = document.getElementById('fx-canvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        // 飛鳥
+        const birds = [];
+        for (let i = 0; i < 8; i++) {
+            birds.push({
+                x: Math.random() * width,
+                y: Math.random() * (height * 0.4),
+                speed: Math.random() * 1.8 + 0.9,
+                size: Math.random() * 8 + 8,
+                wingAngle: Math.random() * Math.PI
+            });
+        }
+
+        // 飄浮粒子
+        const particles = [];
+        for (let i = 0; i < 80; i++) {
+            particles.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                radius: Math.random() * 2.5 + 1,
+                color: Math.random() > 0.5 ? '#ff007f' : '#00ffff',
+                speedY: Math.random() * 1.5 + 0.4,
+                speedX: (Math.random() - 0.5) * 0.6
+            });
+        }
+
+        // 爆破顆粒
+        let bursts = [];
+
+        function createBurst(x, y) {
+            for (let i = 0; i < 35; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 2;
+                bursts.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: Math.random() * 4 + 2,
+                    color: Math.random() > 0.5 ? '#ff007f' : '#00ffff',
+                    alpha: 1,
+                    decay: Math.random() * 0.03 + 0.015
+                });
+            }
+        }
+
+        // 點擊畫面觸發爆破
+        window.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON') {
+                createBurst(e.clientX, e.clientY);
+            }
+        });
+
+        function triggerBurstAtCenter() {
+            createBurst(width / 2, height / 2);
+        }
+
+        // 跑車巡航動畫
+        let showCar = true;
+        let carX = -120;
+
+        function renderFX() {
+            ctx.clearRect(0, 0, width, height);
+
+            // 繪製飛鳥
+            ctx.strokeStyle = "rgba(10, 3, 18, 0.75)";
+            ctx.lineWidth = 2.5;
+            birds.forEach(b => {
+                b.x += b.speed;
+                b.wingAngle += 0.09;
+                if (b.x > width + 30) b.x = -30;
+
+                const wingY = Math.sin(b.wingAngle) * 6;
+                ctx.beginPath();
+                ctx.moveTo(b.x - b.size, b.y + wingY);
+                ctx.quadraticCurveTo(b.x - b.size/2, b.y - wingY, b.x, b.y);
+                ctx.quadraticCurveTo(b.x + b.size/2, b.y - wingY, b.x + b.size, b.y + wingY);
+                ctx.stroke();
+            });
+
+            // 繪製光脈衝粒子
+            particles.forEach(p => {
+                p.y -= p.speedY;
+                p.x += p.speedX;
+                if (p.y < 0) { p.y = height; p.x = Math.random() * width; }
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = p.color;
+                ctx.fill();
+            });
+
+            // 繪製爆破粒子
+            for (let i = bursts.length - 1; i >= 0; i--) {
+                const b = bursts[i];
+                b.x += b.vx;
+                b.y += b.vy;
+                b.alpha -= b.decay;
+
+                if (b.alpha <= 0) {
+                    bursts.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = b.alpha;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                ctx.fillStyle = b.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = b.color;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // 繪製動態跑車剪影
+            if (showCar) {
+                carX += 4;
+                if (carX > width + 150) carX = -150;
+
+                const carY = height - 45;
+                ctx.fillStyle = "#00ffff";
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = "#00ffff";
+
+                // 車身簡約剪影
+                ctx.beginPath();
+                ctx.fillRect(carX, carY, 80, 12);
+                ctx.fillRect(carX + 15, carY - 10, 45, 10);
+                // 車輪與車燈尾光
+                ctx.fillStyle = "#ff007f";
+                ctx.fillRect(carX - 8, carY + 2, 8, 4); // 尾燈紅光
+                ctx.fillRect(carX + 80, carY + 2, 6, 4); // 車頭黃白光
+            }
+
+            requestAnimationFrame(renderFX);
+        }
+        renderFX();
+
+        // 3. 互動按鈕功能邏輯
+        const mainContainer = document.getElementById('main-container');
+        const themeBtn = document.getElementById('theme-btn');
+        const musicBtn = document.getElementById('music-btn');
+        const carBtn = document.getElementById('car-btn');
+        const burstBtn = document.getElementById('burst-btn');
+        const fsBtn = document.getElementById('fs-btn');
+
+        // (1) 主題切換 (Neon -> Sunset -> Cyber)
+        const themes = [
+            { name: "🎨 主題: 罪惡霓虹", class: "theme-neon" },
+            { name: "🎨 主題: 海灘夕陽", class: "theme-sunset" },
+            { name: "🎨 主題: 賽博藍格", class: "theme-cyber" }
+        ];
+        let currentThemeIdx = 0;
+
+        themeBtn.addEventListener('click', () => {
+            mainContainer.classList.remove(themes[currentThemeIdx].class);
+            currentThemeIdx = (currentThemeIdx + 1) % themes.length;
+            mainContainer.classList.add(themes[currentThemeIdx].class);
+            themeBtn.innerText = themes[currentThemeIdx].name;
+        });
+
+        // (2) 跑車巡航開關
+        carBtn.addEventListener('click', () => {
+            showCar = !showCar;
+            carBtn.innerText = showCar ? "🚗 跑車巡航: 開" : "🚗 跑車巡航: 關";
+        });
+
+        // (3) 爆破按鈕
+        burstBtn.addEventListener('click', () => {
+            triggerBurstAtCenter();
+        });
+
+        // (4) 全螢幕
+        fsBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        // (5) Web Audio 多重音樂切換 (Melody -> Synth Rhythm -> Mute)
+        let audioCtx = null;
+        let musicMode = 0; // 0: 關閉, 1: 旋律檔, 2: 重低音
+        let timerId = null;
+
+        musicBtn.addEventListener('click', () => {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            audioCtx.resume();
+
+            musicMode = (musicMode + 1) % 3;
+
+            if (timerId) clearInterval(timerId);
+
+            if (musicMode === 1) {
+                musicBtn.innerText = "🎵 音樂: 旋律檔";
+                startMelody();
+            } else if (musicMode === 2) {
+                musicBtn.innerText = "🎵 音樂: 重低音";
+                startBass();
+            } else {
+                musicBtn.innerText = "🎵 音樂: 靜音";
+            }
+        });
+
+        function startMelody() {
+            const notes = [110, 110, 146.83, 130.81, 110, 110, 164.81, 146.83];
+            let step = 0;
+            timerId = setInterval(() => {
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.22);
+                step++;
+            }, 180);
+        }
+
+        function startBass() {
+            let step = 0;
+            timerId = setInterval(() => {
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(step % 2 === 0 ? 65.41 : 82.41, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.35);
+                step++;
+            }, 250);
+        }
+    </script>
+</body>
+</html>
